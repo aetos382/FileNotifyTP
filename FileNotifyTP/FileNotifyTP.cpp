@@ -1,22 +1,25 @@
 ﻿#include <iostream>
 #include <iterator>
 #include <locale>
+#include <string>
 
 #include <Windows.h>
+
+#include <gsl/gsl>
 
 #include <wil/filesystem.h>
 #include <wil/result.h>
 #include <wil/resource.h>
 
 static wil::unique_hfile OpenDirectory(
-    LPCWSTR directoryName)
+    std::wstring const & directoryName)
 {
     CREATEFILE2_EXTENDED_PARAMETERS params = {};
     params.dwSize = sizeof(CREATEFILE2_EXTENDED_PARAMETERS);
     params.dwFileFlags = FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED;
 
     auto dirHandle = CreateFile2(
-        directoryName,
+        directoryName.c_str(),
         GENERIC_READ,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         OPEN_EXISTING,
@@ -70,11 +73,11 @@ static void PrintInfo(
 }
 
 static BOOL StartWatchingDirectoryChange(
-    PTP_IO io,
-    HANDLE directoryHandle,
-    LPVOID buffer,
+    gsl::not_null<PTP_IO> io,
+    gsl::not_null<HANDLE> directoryHandle,
+    gsl::not_null<LPVOID> buffer,
     DWORD bufferSize,
-    LPOVERLAPPED overlapped)
+    gsl::not_null<LPOVERLAPPED> overlapped)
 {
     StartThreadpoolIo(io);
 
