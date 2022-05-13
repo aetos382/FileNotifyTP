@@ -1,5 +1,5 @@
-﻿#include <cstddef>
-#include <functional>
+﻿#include <array>
+#include <cstddef>
 #include <iostream>
 #include <locale>
 #include <string>
@@ -13,7 +13,7 @@
 #include <wil/resource.h>
 
 static wil::unique_hfile OpenDirectory(
-    gsl::not_null<gsl::cwzstring> const & directoryName)
+    gsl::not_null<gsl::cwzstring> const directoryName)
 {
     CREATEFILE2_EXTENDED_PARAMETERS params = {};
     params.dwSize = sizeof(CREATEFILE2_EXTENDED_PARAMETERS);
