@@ -1,0 +1,8 @@
+/.vs/
+x86/
+x64/
+Debug/
+Release/
+packages/
+
+*.user
