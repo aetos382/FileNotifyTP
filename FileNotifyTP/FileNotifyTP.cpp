@@ -1,4 +1,4 @@
-#include <cstddef>
+﻿#include <cstddef>
 #include <functional>
 #include <iostream>
 #include <locale>
@@ -74,7 +74,7 @@ static void PrintInfo(
 static BOOL StartWatchingDirectoryChange(
     gsl::not_null<PTP_IO> const io,
     gsl::not_null<HANDLE> const directoryHandle,
-    gsl::span<std::byte> const & buffer,
+    gsl::span<std::byte> const buffer,
     gsl::not_null<LPOVERLAPPED> const overlapped)
 {
     StartThreadpoolIo(io);
