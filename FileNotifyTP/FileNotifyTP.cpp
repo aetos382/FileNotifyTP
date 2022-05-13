@@ -1,5 +1,6 @@
-﻿#include <iostream>
-#include <iterator>
+﻿#include <cstddef>
+#include <functional>
+#include <iostream>
 #include <locale>
 #include <string>
 
@@ -36,9 +37,8 @@ static wil::slim_event g_event = wil::slim_event(false);
 
 struct CallbackParams
 {
-    HANDLE FileHandle;
-    LPVOID Buffer;
-    DWORD BufferLength;
+    gsl::not_null<HANDLE> FileHandle;
+    gsl::span<std::byte> Buffer;
 };
 
 static void PrintInfo(
@@ -73,18 +73,17 @@ static void PrintInfo(
 }
 
 static BOOL StartWatchingDirectoryChange(
-    gsl::not_null<PTP_IO> io,
-    gsl::not_null<HANDLE> directoryHandle,
-    gsl::not_null<LPVOID> buffer,
-    DWORD bufferSize,
-    gsl::not_null<LPOVERLAPPED> overlapped)
+    gsl::not_null<PTP_IO> const io,
+    gsl::not_null<HANDLE> const directoryHandle,
+    gsl::span<std::byte> const & buffer,
+    gsl::not_null<LPOVERLAPPED> const overlapped)
 {
     StartThreadpoolIo(io);
 
     auto const ok = ReadDirectoryChangesExW(
         directoryHandle,
-        buffer,
-        bufferSize,
+        buffer.data(),
+        gsl::narrow<DWORD>(buffer.size()),
         TRUE,
         FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME,
         nullptr,
@@ -96,7 +95,7 @@ static BOOL StartWatchingDirectoryChange(
 }
 
 static VOID CALLBACK IoCompletionCallback(
-    PTP_CALLBACK_INSTANCE instance,
+    PTP_CALLBACK_INSTANCE,
     PVOID context,
     PVOID overlapped,
     ULONG ioResult,
@@ -110,7 +109,7 @@ static VOID CALLBACK IoCompletionCallback(
     }
 
     auto const params = static_cast<CallbackParams *>(context);
-    auto const info = static_cast<FILE_NOTIFY_EXTENDED_INFORMATION *>(params->Buffer);
+    auto const info = reinterpret_cast<FILE_NOTIFY_EXTENDED_INFORMATION *>(params->Buffer.data());
 
     auto iterator = wil::create_next_entry_offset_iterator(info);
     for (auto const & e : iterator)
@@ -122,7 +121,6 @@ static VOID CALLBACK IoCompletionCallback(
         io,
         params->FileHandle,
         params->Buffer,
-        params->BufferLength,
         static_cast<LPOVERLAPPED>(overlapped));
 
     if (!ok)
@@ -163,13 +161,13 @@ int wmain(
     {
         auto const handle = OpenDirectory(argv[1]);
 
-        DWORD buffer[1024] = {};
+        alignas(sizeof(DWORD)) auto buffer = std::array<std::byte, 1024>();
+
         OVERLAPPED overlapped = {};
 
         CallbackParams params = {
             .FileHandle = handle.get(),
-            .Buffer = buffer,
-            .BufferLength = sizeof(buffer)
+            .Buffer = buffer
         };
 
         auto const io = wil::unique_threadpool_io(CreateThreadpoolIo(
@@ -182,7 +180,6 @@ int wmain(
             io.get(),
             handle.get(),
             buffer,
-            sizeof(buffer),
             &overlapped);
 
         THROW_LAST_ERROR_IF(!ok);
