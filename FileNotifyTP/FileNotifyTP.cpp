@@ -12,14 +12,14 @@
 #include <wil/resource.h>
 
 static wil::unique_hfile OpenDirectory(
-    std::wstring const & directoryName)
+    gsl::not_null<gsl::cwzstring> const & directoryName)
 {
     CREATEFILE2_EXTENDED_PARAMETERS params = {};
     params.dwSize = sizeof(CREATEFILE2_EXTENDED_PARAMETERS);
     params.dwFileFlags = FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED;
 
-    auto dirHandle = CreateFile2(
-        directoryName.c_str(),
+    auto const dirHandle = CreateFile2(
+        directoryName,
         GENERIC_READ,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         OPEN_EXISTING,
@@ -81,7 +81,7 @@ static BOOL StartWatchingDirectoryChange(
 {
     StartThreadpoolIo(io);
 
-    BOOL ok = ReadDirectoryChangesExW(
+    auto const ok = ReadDirectoryChangesExW(
         directoryHandle,
         buffer,
         bufferSize,
@@ -109,8 +109,8 @@ static VOID CALLBACK IoCompletionCallback(
         return;
     }
 
-    auto params = static_cast<CallbackParams *>(context);
-    auto info = static_cast<FILE_NOTIFY_EXTENDED_INFORMATION *>(params->Buffer);
+    auto const params = static_cast<CallbackParams *>(context);
+    auto const info = static_cast<FILE_NOTIFY_EXTENDED_INFORMATION *>(params->Buffer);
 
     auto iterator = wil::create_next_entry_offset_iterator(info);
     for (auto const & e : iterator)
@@ -118,7 +118,7 @@ static VOID CALLBACK IoCompletionCallback(
         PrintInfo(e);
     }
 
-    auto ok = StartWatchingDirectoryChange(
+    auto const ok = StartWatchingDirectoryChange(
         io,
         params->FileHandle,
         params->Buffer,
@@ -145,8 +145,8 @@ int wmain(
     wil::SetResultLoggingCallback(
         [](wil::FailureInfo const & failure) noexcept
         {
-            wchar_t message[1024];
-            wil::GetFailureLogString(message, std::size(message), failure);
+            auto message = std::wstring(1024, L'\0');
+            wil::GetFailureLogString(message.data(), message.size(), failure);
 
             std::wcerr << message << std::endl;
         });
@@ -161,7 +161,7 @@ int wmain(
 
     try
     {
-        auto handle = OpenDirectory(argv[1]);
+        auto const handle = OpenDirectory(argv[1]);
 
         DWORD buffer[1024] = {};
         OVERLAPPED overlapped = {};
@@ -172,13 +172,13 @@ int wmain(
             .BufferLength = sizeof(buffer)
         };
 
-        auto io = wil::unique_threadpool_io(CreateThreadpoolIo(
+        auto const io = wil::unique_threadpool_io(CreateThreadpoolIo(
             handle.get(),
             IoCompletionCallback,
             &params,
             nullptr));
 
-        auto ok = StartWatchingDirectoryChange(
+        auto const ok = StartWatchingDirectoryChange(
             io.get(),
             handle.get(),
             buffer,
