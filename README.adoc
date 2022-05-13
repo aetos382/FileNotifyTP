@@ -1,0 +1,5 @@
+= FileNotifyTP
+
+ディレクトリの内の変化を監視するのに、Windows Vista から導入された https://docs.microsoft.com/en-us/windows/win32/api/threadpoolapiset/[スレッドプール API] を使ってみたかっただけのサンプル。
+
+あと https://github.com/microsoft/wil[WIL] とか https://github.com/microsoft/GSL[GSL] とかの存在を知ったので使ってみた。
