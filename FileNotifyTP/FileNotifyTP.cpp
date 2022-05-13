@@ -1,4 +1,4 @@
-﻿#include <cstddef>
+#include <cstddef>
 #include <functional>
 #include <iostream>
 #include <locale>
@@ -67,8 +67,7 @@ static void PrintInfo(
             break;
     }
 
-    std::wstring fileName(info.FileName, (info.FileNameLength / sizeof(wchar_t)));
-
+    std::wstring_view fileName(info.FileName, (info.FileNameLength / sizeof(wchar_t)));
     std::wcout << fileName << std::endl;
 }
 
