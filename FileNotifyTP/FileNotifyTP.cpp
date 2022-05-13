@@ -156,8 +156,8 @@ int wmain(
         {
             g_event.SetEvent();
             return TRUE;
-        }
-    , TRUE);
+        },
+        TRUE);
 
     try
     {
